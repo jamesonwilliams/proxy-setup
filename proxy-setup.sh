@@ -10,8 +10,6 @@
 # Jameson Williams <jameson.h.williams@intel.com>
 #
 
-set -x
-
 #
 # Default val, to be overwritten by $0
 program_name="proxy-setup"

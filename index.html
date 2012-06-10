@@ -1,0 +1,48 @@
+<html>
+<body>
+<h1>Intel Proxy Setup Script</h1>
+<h3>Goals</h3>
+<ul>
+    <li>Save a ton of time when setting up a new development
+    workstation, laptop, or server.</li>
+    <li>Consolidate the best BKMs for proxying into one script.</li>
+</ul>
+
+<h3>Get the script</h3>
+<a href="./proxy-setup.sh">proxy-setup.sh</a>
+
+<h3>Usage</h3>
+<pre>
+Usage: ./proxy-setup.sh [OPTION]...
+  --static      Assume system is always on Intarnet. Default is
+                to configure for a system that may move on/off the Intranet.
+  --user        Configure proxy settings only for the current
+                user. Default is to configure settings
+                system-wide, which requires root access.
+  --proxy-host &lt;proxy_host&gt;
+                Use &lt;proxy_host&gt; as the static proxy. (Default is proxy-us.intel.com)
+  --help        Display this usage message
+  --verbose     Show verbose output about commands being run
+
+Report bugs to Jameson Williams &lt;jameson.h.williams@intel.com&gt; 
+</pre>
+
+<h3>Development Info</h3>
+Contributions are welcomed and encouraged!
+
+The git project is at:
+<pre>git clone git://sd30.intel.com/proxy-setup.git</pre>
+
+<h3>Testing</h3>
+The script is known to work on these operating systems. It probably
+works on a lot more, too.
+
+If you have
+success in using it elsewhere, please let me know so I can add you to
+the list.
+<ul>
+    <li>Ubuntu 12.04 LTS</li>
+</ul>
+</body>
+</html>
+
