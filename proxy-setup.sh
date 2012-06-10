@@ -24,8 +24,8 @@ if [ $has_gnome -eq 1 ]; then
         readonly mode_toggle_method="gsettings set org.gnome.system.proxy mode"
         readonly autoproxy_method="gsettings set org.gnome.system.proxy autoconfig-url" 
     else # Assume GNOME 2
-        readonly mode_toggle_method="gconftool --type 'string' --set /system/proxy/mode"
-        readonly autoproxy_method="gconftool --type 'string' --set /system/proxy/autoconfig_url"
+        readonly mode_toggle_method="gconftool --type string --set /system/proxy/mode"
+        readonly autoproxy_method="gconftool --type string --set /system/proxy/autoconfig_url"
     fi
 fi
 
