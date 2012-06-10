@@ -14,21 +14,6 @@
 # Default val, to be overwritten by $0
 program_name="proxy-setup"
 
-# has_gnome is 1 when true
-test ! -x "$(which gnome-session)"
-readonly has_gnome=$?
-if [ $has_gnome -eq 1 ]; then
-    test ! -x "$(which gsettings)"
-    readonly gnome3=$?
-    if [ $gnome3 -eq 1 ]; then
-        readonly mode_toggle_method="gsettings set org.gnome.system.proxy mode"
-        readonly autoproxy_method="gsettings set org.gnome.system.proxy autoconfig-url" 
-    else # Assume GNOME 2
-        readonly mode_toggle_method="gconftool --type string --set /system/proxy/mode"
-        readonly autoproxy_method="gconftool --type string --set /system/proxy/autoconfig_url"
-    fi
-fi
-
 #
 # For autoproxy
 readonly autoproxy_url="http://autoproxy.intel.com"
@@ -100,28 +85,6 @@ function die() {
 
 
 function setup_autoproxy() {
-    if [ $has_gnome -ne 1 ]; then
-        echo "No GNOME installation found, skipping autoproxy config."
-        return
-    fi
-
-
-
-    if [ $config_user -ne 1 ]; then
-        sessions=$(pgrep gnome-session)
-        for pid in $sessions; do
-            if [ ! -z "$sessions" ]; then
-                user=$(stat --format "%U" /proc/$pid/)
-                su "$user" -c "dbus-launch $autoproxy_method $autoproxy_url"
-                su "$user" -c "dbus-launch $mode_toggle_method 'auto'"
-            fi
-        done
-    else
-        dbus-launch $autoproxy_method $autoproxy_url
-        dbus-launch $mode_toggle_method 'auto'
-    fi
-
-
     if [ $config_static -eq 1 ]; then
         echo "Won't configure autoproxy toggle in static mode."
         return
@@ -132,28 +95,93 @@ function setup_autoproxy() {
         return
     fi
 
+    if [ ! -d "$(dirname $nm_hook_script)" ]; then
+        echo "hm, no /etc/NetworkManager/dispatcher.d, so skipping autoproxy config."
+        return
+    fi
+
     cat > "$nm_hook_script" <<- EOF
 		#!/bin/bash
-    
+        #
+		# Intel Autoproxy Hook for NetworkManager
+        # Currently supports GNOME 2.x, 3.x.
+        #
+        # Jameson Williams <jameson.h.williams@intel.com>
+        # Generated from ./proxy-setup.sh on $(date)
+        #
+        #
+		autoproxy="http://autoproxy.intel.com"
 		mode='none'
-    
+		
 		ping -c 1 -w 1 -q circuit.intel.com &> /dev/null
 		if [ \$? -eq 0 ]; then
+		    # Aha, were on the Intranet. So set for autoproxy.
 		    mode='auto'
 		fi
-    
+		
+		# Get all the active GNOME sessions on the machine
 		sessions=\$(pgrep gnome-session)
-		[ -z "\$sessions" ] && exit 0
-    
+		if [ -z "\$sessions" ]; then
+		    # There's no GNOME session running, not really an error, but we
+		    # should probably bail.
+		    exit 0
+		fi
+		
 		for pid in \$sessions; do
+		    #
+		    # By default, assume the much simpler GNOME 3:
+		    cmd_base="dbus-launch gsettings set org.gnome.system.proxy"
+		    mode_cmd="\$cmd_base mode \$mode"
+		    autoproxy_cmd="\$cmd_base autoconfig-url \$autoproxy"
+		    #
+		    # Determine the user who owns the GNOME session:
 		    user=\$(stat --format "%U" /proc/\$pid/)
-		    su "\$user" -c "dbus-launch $mode_toggle_method \$mode"
+		
+		    #
+		    # Test to see if gsettings is installed. If it's not, then we're
+		    # probably in GNOME 2.
+		    test -x "\$(which gsettings)"
+		    if [ \$? -eq 1 ]; then
+		        #
+		        # For GNOME 2, a bunch more work. Get the user's home dir, and
+		        # then get a handle to the DBUS address of the running session.
+		        home=\$(awk -F\: "/\$user/ { print \\\$6 }" /etc/passwd)
+		        dbus_addr=\$(cat \$home/.dbus/session-bus/*-0 | \\
+		                    grep -v '\#' | \\
+		                    grep BUS_ADDRESS | \\
+		                    cut -d '=' -f 2-)
+		
+		        [ -z "\$dbus_addr" ] && continue;
+		
+		        dbus_base="DBUS_SESSION_BUS_ADDRESS=\"\$dbus_addr\""
+		        cmd_base="\$dbus_base gconftool-2 --type string --set "
+		        mode_cmd="\$cmd_base /system/proxy/mode \$mode"
+		        autoproxy_cmd="\$cmd_base /system/proxy/autoconfig_url \$autoproxy"
+		    fi
+		
+		    if [ "x\$EUID" = "x\$(id -u \$user)" ]; then
+		        # If we're running as our own user, we can only fix our own session
+		        # up.
+		        #
+		        # eval to get rid of some quotation funkiness.
+		        eval \$mode_cmd
+		        eval \$autoproxy_cmd
+		    elif [ \$EUID -eq 0 ]; then
+		        #
+		        # OTOH, if we're running as root, we can su and fix all of the
+		        # gnome-sessions.
+		        su "\$user" -c "\$mode_cmd"
+		        su "\$user" -c "\$autoproxy_cmd"
+		    fi
 		done
-    
+		
 		exit 0
 	EOF
 
     chmod ugo+x "$nm_hook_script"
+
+    # And fix our current vals now!
+    $nm_hook_script
 }
 
 function remove_vals_if_present() {
