@@ -18,13 +18,14 @@ program_name="proxy-setup"
 test ! -x "$(which gnome-session)"
 readonly has_gnome=$?
 if [ $has_gnome -eq 1 ]; then
-    readonly gnome_major=$(gnome-session --version | cut -c15)
-    if [ $gnome_major -eq 2 ]; then
-        readonly mode_toggle_method="gconftool --type 'string' --set /system/proxy/mode"
-        readonly autoproxy_method="gconftool --type 'string' --set /system/proxy/autoconfig_url"
-    else
+    test ! -x "$(which gsettings)"
+    readonly gnome3=$?
+    if [ $gnome3 -eq 1 ]; then
         readonly mode_toggle_method="gsettings set org.gnome.system.proxy mode"
         readonly autoproxy_method="gsettings set org.gnome.system.proxy autoconfig-url" 
+    else # Assume GNOME 2
+        readonly mode_toggle_method="gconftool --type 'string' --set /system/proxy/mode"
+        readonly autoproxy_method="gconftool --type 'string' --set /system/proxy/autoconfig_url"
     fi
 fi
 
@@ -104,8 +105,8 @@ function setup_autoproxy() {
         return
     fi
 
-    $autoproxy_method "$autoproxy_url"
-    $mode_toggle_method 'auto'
+    dbus-launch $autoproxy_method "$autoproxy_url"
+    dbus-launch $mode_toggle_method 'auto'
 
     if [ $config_static -eq 1 ]; then
         echo "Won't configure autoproxy toggle in static mode."
