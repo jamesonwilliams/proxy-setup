@@ -37,7 +37,7 @@ readonly nm_hook_script='/etc/NetworkManager/dispatcher.d/99autoproxy'
 # Location of system-wide configuration files and scripts.
 readonly apt_conf_system="/etc/apt/apt.conf"
 readonly ssh_conf_system="/etc/ssh/ssh_config"
-readonly svnconf_system="/etc/subversion/servers"
+readonly svn_conf_system="/etc/subversion/servers"
 readonly shell_conf_system="/etc/environment"
 readonly socks_gateway_script_system="/usr/local/bin/socks-gateway"
 readonly tsocks_conf_system="/etc/tsocks.conf"
