@@ -6,23 +6,27 @@
 # This script is minimally tested. Your bugfixes/contributions are very
 # welcome!!
 #
+# 6/9/2012
 # Jameson Williams <jameson.h.williams@intel.com>
 #
+
+set -x
 
 #
 # Default val, to be overwritten by $0
 program_name="proxy-setup"
 
 # has_gnome is 1 when true
-readonly has_gnome=$(test ! -x "$(which gnome-session)")
+test ! -x "$(which gnome-session)"
+readonly has_gnome=$?
 if [ $has_gnome -eq 1 ]; then
     readonly gnome_major=$(gnome-session --version | cut -c15)
     if [ $gnome_major -eq 2 ]; then
         readonly mode_toggle_method="gconftool --type 'string' --set /system/proxy/mode"
         readonly autoproxy_method="gconftool --type 'string' --set /system/proxy/autoconfig_url"
     else
-        readonly mode_toggle_method="gsettings set org.gnome.system.proxy 'mode'"
-        readonly autoproxy_method="gsettings set org.gnome.system.proxy 'autoconfig-url'" 
+        readonly mode_toggle_method="gsettings set org.gnome.system.proxy mode"
+        readonly autoproxy_method="gsettings set org.gnome.system.proxy autoconfig-url" 
     fi
 fi
 
@@ -56,7 +60,7 @@ readonly tsocks_wrapper_script="$HOME/bin/tsocks"
 apt_conf="$apt_conf_system"
 tsocks_conf="$tsocks_conf_system"
 ssh_conf="$ssh_conf_system"
-svn_confg_file="$svn_conf_system"
+svn_conf="$svn_conf_system"
 shell_conf="$shell_conf_system"
 socks_gateway_script="$socks_gateway_script_system"
 tsocks_conf="$tsocks_conf_system"
@@ -72,25 +76,26 @@ config_verbose=0
 
 function usage() {
     cat >&2 <<- EOF
-		Intel Proxy Setup Script
-		Usage: $program_name [OPTION]...
+	Intel Proxy Setup Script
+	Usage: $program_name [OPTION]...
+	  --static      Assume system is always on Intarnet. Default is
+	                to configure for a system that may move on/off the Intranet.
+	  --user        Configure proxy settings only for the current
+	                user. Default is to configure settings
+	                system-wide, which requires root access.
+	  --proxy-host <proxy_host>
+	                Use <proxy_host> as the static proxy. (Default is proxy-us.intel.com)
+	  --help        Display this usage message
+	  --verbose     Show verbose output about commands being run
 
-		  --static      Assume system is always on Intarnet. Default is
-                        to configure for a system that may move on/off the Intranet.
-		  --user        Configure proxy settings only for the current
-                        user. Default is to configure settings
-                        system-wide, which requires root access.
-		  --proxy-host <proxy_host>
-		                Use <proxy_host> as the static proxy. (Default is proxy-us.intel.com)
-		  --help        Display this usage message
-		  --verbose     Show verbose output about commands being run
-
-		Report bugs to Jameson Williams <jameson.h.williams@intel.com> 
+	Report bugs to Jameson Williams <jameson.h.williams@intel.com> 
 	EOF
 }
 
 function die() {
-    echo $@ >&2
+    echo -e $@ >&2
+    echo >&2
+    usage
     exit 1
 }
 
@@ -105,6 +110,12 @@ function setup_autoproxy() {
     $mode_toggle_method 'auto'
 
     if [ $config_static -eq 1 ]; then
+        echo "Won't configure autoproxy toggle in static mode."
+        return
+    fi
+   
+    if [ $config_user -eq 1 ]; then
+        echo "Can't configure autoproxy toggle hook in user mode."
         return
     fi
 
@@ -135,10 +146,10 @@ function setup_autoproxy() {
 function remove_vals_if_present() {
     target=$1
     shift
-    [ ! -f "$target" ] && die "Bad conf file: $target"
+    [ ! -f "$target" ] &&  return
 
     while [ "$1x" != "x" ]; do
-        sed -i "s/^$1.*//" $target
+        sed -i "/^$1.*/d" $target
         shift
     done
 }
@@ -149,14 +160,18 @@ function setup_shell() {
         socks_proxy no_proxy GIT_PROXY_COMMAND
 
     cat >> "$shell_conf" <<- EOF
-
+		GIT_PROXY_COMMAND="$socks_gateway_script"
+		ftp_proxy="http://$config_proxy_host:911"
 		http_proxy="http://$config_proxy_host:911"
 		https_proxy="http://$config_proxy_host:911"
-		ftp_proxy="http://$config_proxy_host:911"
+		no_proxy="intel.com,*.intel.com,10.0.0.0/8,192.168.0.0/16,127.0.0.0/8,localhost"
 		socks_proxy="http://$config_proxy_host:1080"
-		no_proxy="intel.com,*.intel.com,10.0.0.0/8,192.168.0.0/16"
-		GIT_PROXY_COMMAND="$socks_gateway_script"
 	EOF
+
+    if [ $config_user -eq 1 ]; then
+        remove_vals_if_present "$shell_conf" 'export.*_proxy'
+        echo "export GIT_PROXY_COMMAND http_proxy https_proxy no_proxy socks_proxy ftp_proxy" >> "$shell_conf"
+    fi
 }
 
 function setup_socks_gateway() {
@@ -167,6 +182,8 @@ function setup_socks_gateway() {
             apt-get install -y netcat-openbsd
         fi
     fi
+
+    mkdir -p $(dirname $socks_gateway_script) &>/dev/null
 
     cat > "$socks_gateway_script" <<- EOF
 		#!/bin/bash
@@ -194,6 +211,8 @@ function setup_ssh() {
 
     remove_vals_if_present "$ssh_conf" ProxyCommand
 
+    mkdir -p $(dirname "$ssh_conf") &>/dev/null
+
     cat >> "$ssh_conf" <<- EOF
 		ProxyCommand $socks_gateway_script %h %p
 	EOF
@@ -210,6 +229,8 @@ function setup_svn() {
         http-proxy-exceptions \
         http-proxy-host \
         http-proxy-port 
+
+    mkdir -p $(dirname "$svn_conf") &>/dev/null
 
     cat >> "$svn_conf" <<- EOF
 		store-plaintext-passwords = no
@@ -229,11 +250,11 @@ function setup_sudo() {
         'Defaults.*env_keep'
 
     keeps="http_proxy https_proxy ftp_proxy no_proxy socks_proxy"
-    new_content="Defaults    env_keep=\"$keeps\""
+    new_content="Defaults	env_keep=\"$keeps\""
 
-    sed "/^Defaults.*env_reset$/ a\
+    sed -i "/^Defaults.*env_reset$/ a\
 $new_content
-"   > $sudoers_file
+"   $sudoers_file
 }
 
 function setup_apt() {
@@ -256,6 +277,9 @@ function setup_tsocks() {
         return
     fi
 
+    # tsocks doesn't work with hostnames, WTF. So get the IP for the spec'd hostname.
+    config_proxy_host_ip=$(host -t A $config_proxy_host | awk '/address / { print $NF }')
+
     remove_vals_if_present "$tsocks_conf" \
         "local" "server"
 
@@ -263,7 +287,7 @@ function setup_tsocks() {
 		local = 192.168.0.0/255.255.255.0
 		local = 134.134.0.0/255.255.0.0
 		local = 10.0.0.0/255.0.0.0
-		server = $config_proxy_host
+		server = $config_proxy_host_ip
 		server_type = 5
 		server_port = 1080
 	EOF
@@ -274,8 +298,9 @@ function setup_tsocks() {
 			
 			TSOCKS_CONF_FILE=\$HOME/.tsocks.conf
 			export TSOCKS_CONF_FILE
-			exec tsocks "\$@"
+			exec /usr/bin/tsocks "\$@"
 		EOF
+        chmod ugo+x "$tsocks_wrapper_script"
     fi
 }
 
@@ -315,11 +340,10 @@ function main() {
         esac
     done
 
-    exit 0
-
     if [ $config_system -eq 1 -a $EUID -ne 0 ]; then
-        die "You need root privileges to set system-wide proxy
-             settings. Did you mean to run with sudo?"
+        die "You need root privileges to set system-wide proxy settings.
+        \nEither re-run with sudo, or look at the --user option, if you
+        \ncan't get root access (not preffered.)"
     fi
 
     if [ $config_user -eq 1 ]; then
@@ -327,7 +351,7 @@ function main() {
         apt_conf="$apt_conf_user"
         tsocks_conf="$tsocks_conf_user"
         ssh_conf="$ssh_conf_user"
-        svn_confg_file="$svn_conf_user"
+        svn_conf="$svn_conf_user"
         shell_conf="$shell_conf_user"
         socks_gateway_script="$socks_gateway_script_user"
         tsocks_conf="$tsocks_conf_user"
@@ -351,7 +375,7 @@ function main() {
 
     # If we're doing a static config, it's safe to hard code the apt
     # proxy values.
-    if [ $config_static -eq 1]; then
+    if [ $config_static -eq 1 ]; then
         setup_apt
     fi
 }
