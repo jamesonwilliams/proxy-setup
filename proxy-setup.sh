@@ -105,8 +105,15 @@ function setup_autoproxy() {
         return
     fi
 
-    dbus-launch $autoproxy_method "$autoproxy_url"
-    dbus-launch $mode_toggle_method 'auto'
+
+    sessions=$(pgrep gnome-session)
+    for pid in $sessions; do
+        if [ ! -z "$sessions" ]; then
+            user=$(stat --format "%U" /proc/$pid/)
+            su "$user" -c "dbus-launch $autoproxy_method $autoproxy_url"
+            su "$user" -c "dbus-launch $mode_toggle_method 'auto'"
+        fi
+    done
 
     if [ $config_static -eq 1 ]; then
         echo "Won't configure autoproxy toggle in static mode."
