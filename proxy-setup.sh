@@ -319,6 +319,7 @@ function main() {
                 shift
                 ;;
             --verbose)
+                echo '--verbose flag is not implemented. Submit a patch?' >&2
                 config_verbose=1
                 shift
                 ;;
