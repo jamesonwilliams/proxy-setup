@@ -1,18 +1,43 @@
-<html>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Intel Proxy Setup Script</title>
+  <style type="text/css">
+/*<![CDATA[*/
+            <!--
+            .container {
+                max-width: 600px;
+                margin: 5% auto;
+            }
+
+            h1 { font-size: xx-large; }
+            h3 { font-size: large; }
+            h4 { font-size: large; }
+
+            h1, h2, h3, h4, h5, h6 {
+                font-family: sans;
+            }
+            -->
+  /*]]>*/
+  </style>
+</head>
 <body>
-<h1>Intel Proxy Setup Script</h1>
-<h3>Goals</h3>
-<ul>
-    <li>Save a ton of time when setting up a new development
-    workstation, laptop, or server.</li>
-    <li>Consolidate the best BKMs for proxying into one script.</li>
-</ul>
+  <div class="container">
+    <h1>Intel Proxy Setup Script</h1>
+    <h3>Goals</h3>
+    <ul>
+      <li>Save a ton of time when setting up a new development workstation,
+          laptop, or server.</li>
+      <li>Consolidate the best BKMs for proxying into one script.</li>
+    </ul>
 
-<h3>Get the script</h3>
-<a href="./proxy-setup.sh">proxy-setup.sh</a>
+    <h3>Get the script</h3>
+    <pre>wget <a href="http://sd30.intel.com/~jameson/proxy-setup/proxy-setup.sh">http://sd30.intel.com/~jameson/proxy-setup/proxy-setup.sh</a></pre>
 
-<h3>Usage</h3>
-<pre>
+    <h3>Usage</h3>
+    <pre>
 Usage: ./proxy-setup.sh [OPTION]...
   --static      Assume system is always on Intarnet. Default is
                 to configure for a system that may move on/off the Intranet.
@@ -25,32 +50,31 @@ Usage: ./proxy-setup.sh [OPTION]...
   --verbose     Show verbose output about commands being run
 
 Report bugs to Jameson Williams &lt;jameson.h.williams@intel.com&gt; 
-</pre>
+    </pre>
 
-<h3>Development Info</h3>
-Contributions are welcomed and encouraged!
+    <h3>Development Info</h3>
+    <p>Contributions are welcomed and encouraged!</p>
 
-The git project is at:
-<pre>git clone git://sd30.intel.com/proxy-setup.git</pre>
+    <p>The git project is at:</p>
+    <pre>git clone git://sd30.intel.com/proxy-setup.git</pre>
 
-<h3>Testing</h3>
-The script is known to work on these operating systems. It probably
-works on a lot more, too.
+    <h3>Testing</h3>
+    <p>The script is known to work on these operating systems. It probably
+       works on a lot more, too. If you have success in using it elsewhere,
+       please let me know so I can add you to the list.</p>
 
-If you have
-success in using it elsewhere, please let me know so I can add you to
-the list.
-<ul>
-    <li>Ubuntu 12.04 LTS</li>
-    <li>Ubuntu <strong>10</strong>.04 LTS</li>
-</ul>
+    <ul>
+      <li>Ubuntu 12.04 LTS</li>
+      <li>Ubuntu <strong>10</strong>.04 LTS</li>
+    </ul>
 
-<h3>Errata</h3>
+    <h3>Errata</h3>
 
-Note: <code>--verbose</code> is currently unimplemented, but this fact
-is not reported. Curious users are encouraged to run the command via:
+    <p>Note: <code>--verbose</code> is currently unimplemented, but this fact
+       is not reported. Curious users are encouraged to run the command via:</p>
 
-<pre>bash -x ./proxy-setup.sh</pre>
+    <pre>bash -x ./proxy-setup.sh</pre>
+  </div>
 </body>
 </html>
 
