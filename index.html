@@ -8,13 +8,13 @@
 /*<![CDATA[*/
             <!--
             .container {
-                max-width: 600px;
+                max-width: 800px;
                 margin: 5% auto;
             }
 
             h1 { font-size: xx-large; }
-            h3 { font-size: large; }
-            h4 { font-size: large; }
+            h3 { font-size: x-large; }
+            p, a, pre, code, ul, ol { font-size: large; }
 
             h1, h2, h3, h4, h5, h6 {
                 font-family: sans;
@@ -26,37 +26,18 @@
 <body>
   <div class="container">
     <h1>Intel Proxy Setup Script</h1>
-    <h3>Goals</h3>
     <ul>
-      <li>Save a ton of time when setting up a new development workstation,
-          laptop, or server.</li>
-      <li>Consolidate the best BKMs for proxying into one script.</li>
+      <li>Save time setting up Linux machines at Intel;</li>
+      <li>Consolidate BKMs for proxying into one script.</li>
     </ul>
 
-    <h3>Get the script</h3>
-    <pre>wget <a href="http://sd30.intel.com/~jameson/proxy-setup/proxy-setup.sh">http://sd30.intel.com/~jameson/proxy-setup/proxy-setup.sh</a></pre>
+    <h3>Download and Run</h3>
+    <pre>wget <a href="http://sd30.intel.com/~jameson/proxy-setup.sh">http://sd30.intel.com/~jameson/proxy-setup.sh</a>
+sudo ./proxy-setup.sh </pre>
 
-    <h3>Usage</h3>
-    <pre>
-Usage: ./proxy-setup.sh [OPTION]...
-  --static      Assume system is always on Intarnet. Default is
-                to configure for a system that may move on/off the Intranet.
-  --user        Configure proxy settings only for the current
-                user. Default is to configure settings
-                system-wide, which requires root access.
-  --proxy-host &lt;proxy_host&gt;
-                Use &lt;proxy_host&gt; as the static proxy. (Default is proxy-us.intel.com)
-  --help        Display this usage message
-  --verbose     Show verbose output about commands being run
-
-Report bugs to Jameson Williams &lt;jameson.h.williams@intel.com&gt; 
-    </pre>
-
-    <h3>Development Info</h3>
-    <p>Contributions are welcomed and encouraged!</p>
-
-    <p>The git project is at:</p>
-    <pre>git clone git://sd30.intel.com/proxy-setup.git</pre>
+    <p>There are also options for static and user-mode-only
+    configurations.  See <code>./proxy-setup.sh --help</code> for a full
+    accounting of these features.</p>
 
     <h3>Testing</h3>
     <p>The script is known to work on these operating systems. It probably
@@ -68,12 +49,18 @@ Report bugs to Jameson Williams &lt;jameson.h.williams@intel.com&gt;
       <li>Ubuntu <strong>10</strong>.04 LTS</li>
     </ul>
 
-    <h3>Errata</h3>
+    <h3>Development</h3>
 
     <p>Note: <code>--verbose</code> is currently unimplemented, but this fact
        is not reported. Curious users are encouraged to run the command via:</p>
 
     <pre>bash -x ./proxy-setup.sh</pre>
+
+    <p>Contributions of any kind are welcomed and encouraged!</p>
+    <pre>git clone git://sd30.intel.com/proxy-setup.git</pre>
+
+    <p>Submit bugs to <a
+        href="mailto:jameson.h.williams@intel.com">jameson.h.williams@intel.com</a>.</p>
   </div>
 </body>
 </html>
