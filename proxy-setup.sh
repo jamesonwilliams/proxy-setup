@@ -1,13 +1,13 @@
 #!/bin/bash
 #
 # Automation script to setup a Debian/Ubuntu style Linux host to work as
-# expected over the Intel proxies.
+# expected over the Globocorp proxies.
 #
 # This script is minimally tested. Your bugfixes/contributions are very
 # welcome!!
 #
 # 6/9/2012
-# Jameson Williams <jameson.h.williams@intel.com>
+# Jameson Williams <jameson@jamesonwilliams.com>
 #
 
 #
@@ -15,8 +15,17 @@
 program_name="proxy-setup"
 
 #
+# Settings specific to Globocorp, inc.
+readonly globocorp_domain="globocorp.com"
+readonly globocorp_proxy_host="proxy.${globocorp_domain}"
+readonly globocorp_autoproxy_host="autoproxy.${globocorp_domain}"
+# Used for Network Manager to test if we are on the LAN.
+readonly globocorp_internal_host="internal-only.${globocorp_domain}"
+readonly globocorp_proxy_port="80"
+readonly globocorp_socks_port="1080"
+
+#
 # For autoproxy
-readonly autoproxy_url="http://autoproxy.intel.com"
 readonly nm_hook_script='/etc/NetworkManager/dispatcher.d/99autoproxy'
 
 #
@@ -52,7 +61,7 @@ tsocks_conf="$tsocks_conf_system"
 #
 # Default values for the command line options.
 config_dynamic=1
-config_proxy_host="proxy-us.intel.com"
+config_proxy_host="$globocorp_proxy_host"
 config_static=0
 config_system=1
 config_user=0
@@ -60,7 +69,7 @@ config_verbose=0
 
 function usage() {
     cat >&2 <<- EOF
-	Intel Proxy Setup Script
+	Globocorp Proxy Setup Script
 	Usage: $program_name [OPTION]...
 	  --static      Assume system is always on Intarnet. Default is
 	                to configure for a system that may move on/off the Intranet.
@@ -68,11 +77,12 @@ function usage() {
 	                user. Default is to configure settings
 	                system-wide, which requires root access.
 	  --proxy-host <proxy_host>
-	                Use <proxy_host> as the static proxy. (Default is proxy-us.intel.com)
+	                Use <proxy_host> as the static proxy. (Default is
+	                $globocorp_proxy_host)
 	  --help        Display this usage message
 	  --verbose     Show verbose output about commands being run
 
-	Report bugs to Jameson Williams <jameson.h.williams@intel.com> 
+	Report bugs to Jameson Williams <jameson@jamesonwilliams.com>
 	EOF
 }
 
@@ -103,17 +113,17 @@ function setup_autoproxy() {
     cat > "$nm_hook_script" <<- EOF
 		#!/bin/bash
         #
-		# Intel Autoproxy Hook for NetworkManager
+		# Globocorp Autoproxy Hook for NetworkManager
         # Currently supports GNOME 2.x, 3.x.
         #
-        # Jameson Williams <jameson.h.williams@intel.com>
+        # Jameson Williams <jameson@jamesonwilliams.com>
         # Generated from ./proxy-setup.sh on $(date)
         #
         #
-		autoproxy="http://autoproxy.intel.com"
+		autoproxy="http://$globocorp_autoproxy_host"
 		mode='none'
 		
-		ping -c 1 -w 1 -q circuit.intel.com &> /dev/null
+		ping -c 1 -w 1 -q $globocorp_internal_host &> /dev/null
 		if [ \$? -eq 0 ]; then
 		    # Aha, were on the Intranet. So set for autoproxy.
 		    mode='auto'
@@ -202,11 +212,11 @@ function setup_shell() {
 
     cat >> "$shell_conf" <<- EOF
 		GIT_PROXY_COMMAND="$socks_gateway_script"
-		ftp_proxy="http://$config_proxy_host:911"
-		http_proxy="http://$config_proxy_host:911"
-		https_proxy="http://$config_proxy_host:911"
-		no_proxy="intel.com,*.intel.com,10.0.0.0/8,192.168.0.0/16,127.0.0.0/8,localhost"
-		socks_proxy="http://$config_proxy_host:1080"
+		ftp_proxy="http://$config_proxy_host:$globalcorp_proxy_port"
+		http_proxy="http://$config_proxy_host:$globalcorp_proxy_port"
+		https_proxy="http://$config_proxy_host:$globalcorp_proxy_port"
+		no_proxy="$globocorp_domain,*.$globocorp_domain,10.0.0.0/8,192.168.0.0/16,127.0.0.0/8,localhost"
+		socks_proxy="http://$config_proxy_host:$globocorp_socks_port"
 	EOF
 
     if [ $config_user -eq 1 ]; then
@@ -230,11 +240,11 @@ function setup_socks_gateway() {
 		#!/bin/bash
     
 		case \$1 in
-		    *.intel.com|192.168.*|127.0.*|localhost|10.*)
+		    *.$globocorp_domain|192.168.*|127.0.*|localhost|10.*)
 		        METHOD="-X connect"
 		    ;;
 		    *)
-		        METHOD="-X 5 -x $config_proxy_host:1080"
+		        METHOD="-X 5 -x $config_proxy_host:$globocorp_socks_port"
 		    ;;
 		esac
     
@@ -275,9 +285,9 @@ function setup_svn() {
 
     cat >> "$svn_conf" <<- EOF
 		store-plaintext-passwords = no
-		http-proxy-exceptions = *.intel.com
+		http-proxy-exceptions = *.$globocorp_domain
 		http-proxy-host = $config_proxy_host
-		http-proxy-port = 911
+		http-proxy-port = $globalcorp_proxy_port
 	EOF
 }
 
@@ -308,7 +318,7 @@ function setup_apt() {
         'Acquire::http::Proxy'
 
     cat >> "$apt_conf" <<- EOF
-		Acquire::http::Proxy "http://$config_proxy_host:911";
+		Acquire::http::Proxy "http://$config_proxy_host:$globalcorp_proxy_port";
 	EOF
 }
 
@@ -330,7 +340,7 @@ function setup_tsocks() {
 		local = 10.0.0.0/255.0.0.0
 		server = $config_proxy_host_ip
 		server_type = 5
-		server_port = 1080
+		server_port = $globocorp_socks_port
 	EOF
 
     if [ $config_user -eq 1 ]; then 
